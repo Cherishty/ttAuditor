@@ -1,7 +1,13 @@
 ﻿#ttAuditor
-#version: 2.0
+#version: 3.0
 #author: github.com/Cherishty
 
+New Feature in 3.0:
+1.工单首页可自动翻页
+2.预约日期自动设置为下个月底
+3.寻找控件的成功率提升
+
+-------------------------------
 1.按照之前的要求搭好环境
 
 2.安装firefox, 注意，必须将其安装在D:\Program Files (x86)\Mozilla Firefox目录下。
@@ -15,5 +21,4 @@
 
 To Do:
 1.自动化派单
-2.自动翻页
-3.打包为exe文件
+2.打包为exe文件
