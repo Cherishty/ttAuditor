@@ -8,6 +8,11 @@ import xlwt
 import codecs
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 
+global assignWorker
+global assignIndex
+global assignableNums
+assignableNums = 1
+
 
 def ReadConfig():
     file = 'tt.config'
@@ -16,62 +21,8 @@ def ReadConfig():
     fp.close()
     return config
 
-
-def DoBaidu():
-    url = 'https://www.baidu.com/'
-    driver.get(url)
-    kw = '日历'
-    driver.find_element_by_id("kw").send_keys(kw)
-    driver.find_element_by_id('su').submit()
-    time.sleep(2)
-    driver.get_screenshot_as_file('Step1日历.png')
-    driver.find_element_by_xpath('//*[@id="1"]/div[1]/div[1]/div[1]/div[1]/div[2]/div/div[1]/div[2]/div').click()
-    driver.find_element_by_xpath('//*[@id="1"]/div[1]/div[1]/div[1]/div[1]/div[2]/div/div[2]/div/ul/li[2]').click()
-    driver.get_screenshot_as_file('Step2切换.png')
-    data = driver.find_element_by_xpath('//*[@id="1"]/div[1]/div[1]/div[2]/p[3]/span[3]').text
-    print(data)
-    tdNode = driver.find_element_by_xpath('//*[@id="1"]/div[1]/div[1]/div[1]/div[2]/table/tbody/tr[1]')
-    thNode = tdNode.find_element_by_xpath('./th[5]')
-    print(thNode.text)
-    print('测试成功！')
-
-
 def printLine(output):
     print(output)
-
-
-def ExcProvinceCheck():
-    url = 'http://mz.dmw.gov.cn/index3.php'
-    driver.get(url)
-    sel = driver.find_element_by_xpath('//*[@id="province"]').find_elements_by_tag_name('option')
-    num = len(sel)
-    count = 0
-    for ind in range(0, num):
-        each = sel[ind]
-        each.click()
-        time.sleep(0.5)
-        count += 1
-        driver.get_screenshot_as_file(each.text + '.png')
-        if (count > 3):
-            break
-    sel[10].click()
-    driver.get_screenshot_as_file('Step1江苏.png')
-    province = Select(driver.find_element_by_xpath('//*[@id="province"]'))
-    count = 0
-    for each in province.options:
-        if (count > 3):
-            break
-        count += 1
-        print('sel ' + each.text)
-    sx = province.select_by_value('30')
-    time.sleep(1)
-    driver.get_screenshot_as_file('Step1陕西.png')
-    city = Select(driver.find_element_by_xpath('//*[@id="city"]'))
-    bj = city.select_by_value('313')
-    time.sleep(1)
-    driver.get_screenshot_as_file('Step2宝鸡.png')
-    print('测试成功！')
-
 
 def WaitControlById(str):
     while 1:
@@ -108,7 +59,7 @@ def WaitControlClickByName(str):
         try:
             time.sleep(loginWait)
             print(str + ' 正在加载，请稍等...')
-            #driver.get_screenshot_as_file(str + '.png')
+            # driver.get_screenshot_as_file(str + '.png')
             driver.find_element_by_name(str)
         except:
             continue
@@ -132,6 +83,7 @@ def InitToMenu():
     driver.find_element_by_id('btnlogin').click()
     time.sleep(loginWait)
     WaitControlClickByName('工单管理')
+    time.sleep(loginWait)
     WaitControlClickByName('工单管理业务开通')
     WaitControlClickByName('工单管理业务开通业务开通工单')
 
@@ -155,26 +107,8 @@ def FilterSearch():
     # driver.find_element_by_xpath('//*[@id="highSearchDivForm"]/ul/li[3]/div').click()
 
 
-def OrderRequest(i):
-    driver.execute_script('getRowData(' + str(i) + ')')
-    time.sleep(3)
-
-    if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
-        return 0
-
-    driver.find_element_by_xpath('//*[@id="workOrderDetailsTitle"]/ul/li[2]/a').click()
-    time.sleep(waitTime)
-    if "前台预约" in driver.find_element_by_xpath('//*[@id="historyLinkInfoDiv|2|r1001|c103"]/div').get_attribute(
-            'innerHTML') and "成功" in driver.find_element_by_xpath(
-            '//*[@id="historyLinkInfoDiv|2|r1001|c107"]/div').get_attribute('innerHTML'):
-        return 0
-    printLine('该用户需要铁通转网！')
-
-    driver.execute_script('showInstruPreDiv()')
-    time.sleep(waitTime)
-
-    # 安排人员
-    WaitControlClickByName('userHandlerName')
+'''
+def AssignWorkerHalf():
     driver.find_element_by_name('userHandlerName').send_keys(assignWorker)
     time.sleep(10)
     driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
@@ -186,48 +120,125 @@ def OrderRequest(i):
     # workers={}
     # for each in workerList:
     # driver.find_element_by_xpath('//div[@class="l-box-select-inner"]/table/tbody/tr[5]/td').click()
+'''
 
-    # click calendar
+
+def GetAssignWorker():
+    global assignableNums
+    global assignIndex
+    workerList = driver.find_elements_by_xpath('//div[@class="l-box-select-inner"]')[3]
+    if totalCount[0] == 0:
+        assignIndex = 0
+        assignableNums = len(workerList.find_elements_by_tag_name('td'))
+        i = 0
+        for each in workerList.find_elements_by_tag_name('td'):
+            assignedInfo = each.get_attribute("innerHTML")
+            assignedName = re.findall('(.*?)    待处理工单数', assignedInfo, re.S)[0]
+            assignableWorker[assignedName] = 0
+            assignableMap.append(assignedName)
+        printLine("可安排的人员共有： " + str(assignableNums) + "人")
+    if (assignIndex >= assignableNums):
+        assignIndex = 0
+    assignIndex += 1
+    return assignableMap[assignIndex - 1]
+
+
+def AssignWorker():
+    WaitControlClickByName('userHandlerName')
+    global assignWorker
+    if 0 == assignMode:
+        assignWorker = GetAssignWorker();
+    driver.find_element_by_name('userHandlerName').send_keys(assignWorker)
+    time.sleep(10)
+    driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
+    # To do:assign worker automatically by counts
+    workerList = driver.find_elements_by_xpath('//div[@class="l-box-select-inner"]')[3]
+    print(workerList.find_element_by_tag_name('td').get_attribute('text'))
+    workerList.find_element_by_tag_name('td').click()
+
+
+def OrderRequest(i):
+    try:
+        driver.execute_script('getRowData(' + str(i) + ')')
+    except:
+        printLine('运行结束')
+    time.sleep(3)
+    if (config['debugMode'] == '0'):
+        if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
+            return 0
+
+    driver.find_element_by_xpath('//*[@id="workOrderDetailsTitle"]/ul/li[2]/a').click()
+    time.sleep(waitTime)
+
+    if (config['debugMode'] == '0'):
+        if "前台预约" in driver.find_element_by_xpath('//*[@id="historyLinkInfoDiv|2|r1001|c103"]/div').get_attribute(
+                'innerHTML') and "成功" in driver.find_element_by_xpath(
+                '//*[@id="historyLinkInfoDiv|2|r1001|c107"]/div').get_attribute('innerHTML'):
+            return 0
+
+    printLine('该用户需要铁通转网！')
+
+    driver.execute_script('showInstruPreDiv()')
+    time.sleep(waitTime)
+
+    # 安排人员
+    AssignWorker()
+
+    # 预约时间
     ClickCalendar()
-    # time.sleep(3)
-    # driver.find_element_by_id('remark').send_keys("铁通转网啦小蕾蕾")
-    assignCount[0] = assignCount[0] - 1
-    print("员工： " + assignWorker + "已派单" + str(i) + "次， 剩余 " + str(assignCount[0]) + "次")
+    totalCount[0] += 1
+
+    assignedInfo = driver.find_element_by_name('userHandlerName').get_attribute("value")
+    assignedName = re.findall('(.*?)    待处理工单数', assignedInfo, re.S)[0]
+    global assignWorker
+    if (assignWorker == assignedName):
+        assignableWorker[assignedName] += 1
+    else:
+        assignWorker = assignedName
+        assignableWorker[assignedName] = 1
+    print("员工： " + assignedName + "已派单" + str(assignableWorker[assignedName]) + "次， 剩余 " + str(
+        assignCount[0] - assignableWorker[assignedName]) + "次")
     driver.get_screenshot_as_file('picture/Step5_处理完毕.png')
     try:
-        # driver.execute_script('alert()')
-        driver.execute_script('preSucBtn()')
+        if (config['debugMode'] == '1'):
+            driver.execute_script('alert()')
+        else:
+            driver.execute_script('preSucBtn()')
     except:
         driver.switch_to.alert.accept()
         time.sleep(3)
         return 1
 
+
 def ClickCalendar():
     driver.find_elements_by_class_name('l-trigger-icon')[12].click()
     time.sleep(3)
-    nextMonth=driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-header"]')[2]
+    nextMonth = driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-header"]')[2]
     nextMonth.find_element_by_xpath('./div[4]/span').click()
 
-    driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-body"]/table/tbody/tr[5]/td[3]')[2].click()
+    driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-body"]/table/tbody/tr[6]/td[1]')[2].click()
+
 
 def Exctt():
     InitToMenu()
     FilterSearch()
     currentPage = 1
     totalPage = int(
-        driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
-            'innerHTML'))
+            driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
+                    'innerHTML'))
 
     while currentPage <= totalPage:
         print('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
         driver.get_screenshot_as_file('picture/Step3_当前页.png')
-        hasAssigned=0
-        for i in range(0, 1):
-            if (assignMode and assignCount[0] <= 0):
+        hasAssigned = 0
+        for i in range(0, 30):
+            global assignableNums
+            if ((assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
+                assignCount[0]):
                 return
-            hasAssigned=OrderRequest(i)
-        if hasAssigned==0:
-            #关闭预约界面
+            hasAssigned = OrderRequest(i)
+        if hasAssigned == 0:
+            # 关闭预约界面
             driver.execute_script('closeWorkOrderDetailsDiv()')
         currentPage += 1
         nextpage = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
@@ -239,33 +250,35 @@ def Exctt():
 
 
 if __name__ == '__main__':
-    print('Welcome ttAuditor v3.0')
+    print('Welcome ttAuditor v4.0')
     config = ReadConfig()
     waitTime = float(config['waitTime'])
     loginWait = float(config['loginTime'])
-    assignMode = 1
-    if (config['assignMode'] == 'fullAuto'):
-        assignMode = 0
-    else:
-        assignMode = 1
-    # driver = webdriver.Firefox(executable_path="./geckodriver.exe")
+    mode = config['mode']
 
-    # 无浏览器
-    # driver = webdriver.PhantomJS(executable_path="./phantomjs.exe")
+    assignMode = 1
+    assignCount = []
+    if (config['assignMode']['useMode'] == 'fullAuto'):
+        assignMode = 0
+        assignCount.append(int(config['assignMode']['fullAuto']['assignCount']))
+    elif (config['assignMode']['useMode'] == 'halfAuto'):
+        assignMode = 1
+        assignCount.append(int(config['assignMode']['halfAuto']['assignCount']))
     # chromedriver = "./chromedriver.exe"
     # os.environ["webdriver.chrome.driver"] = chromedriver
     # driver = webdriver.Chrome(chromedriver)
     # driver = webdriver.Chrome(executable_path="./chromedriver.exe")
-    mode = config['mode']
-    assignCount = []
-    assignCount.append(int(config['assignCount']))
-    assignWorker = config['assignWorker']
-    if (mode == 'baidu'):
-        DoBaidu()
+    global assignWorker
+    assignWorker = config['assignMode']['halfAuto']['assignWorker']
+    assignableWorker = {}
+    assignableMap = []
+    totalCount = []
+    totalCount.append(0)
+    assignableWorker[assignWorker] = 0
 
-    elif (mode == 'area'):
-        ExcProvinceCheck()
-    elif (mode == 'standardTT'):
+    print("assignMode: " + config['assignMode']['useMode'])
+
+    if (mode == 'standardTT'):
         # 无浏览器
         driver = webdriver.PhantomJS(executable_path="./phantomjs.exe")
         Exctt()

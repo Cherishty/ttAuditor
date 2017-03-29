@@ -1,11 +1,20 @@
 ﻿#ttAuditor
-#version: 3.0
+#version: 4.0
 #author: github.com/Cherishty
 
+
+New Feature in 4.0:
+	1.fix firefox有时进入主页失败的bug
+	*2.实现自动化派单。config中新增[assignMode],使用方法如下
+		2.1 [useMode]:值为[fullAuto]时全自动运行，需要在[fullAuto]->[assignCount]设置次数
+		（即为所有可以派单的员工每人派单的次数）
+		2.2 之前版本的默认使用的半自动模式，可以将[useMode]设为[halfAuto]以开启，其下各个参数的含义相同
+	3.config中新增[debugMode],正常使用时请设为1，测试时设为1（程序会运行但不会真正派单）
+
 New Feature in 3.0:
-1.工单首页可自动翻页
-2.预约日期自动设置为下个月底
-3.寻找控件的成功率提升
+	1.工单首页可自动翻页
+	2.预约日期自动设置为下个月底
+	3.寻找控件的成功率提升
 
 -------------------------------
 1.按照之前的要求搭好环境
