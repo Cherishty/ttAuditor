@@ -96,7 +96,10 @@ def FilterSearch():
     driver.get_screenshot_as_file('picture/Step2_Menu.png')
     driver.execute_script('showHighSearchDiv()')
     driver.find_element_by_name('undefined').click()
-    driver.find_element_by_class_name('l-box-select-inner').find_element_by_xpath('table/tbody/tr[1]/td').click()
+    if(config['behavior']=='order'):
+        driver.find_element_by_class_name('l-box-select-inner').find_element_by_xpath('table/tbody/tr[1]/td').click()
+    if(config['behavior']=='auditor'):
+        driver.find_element_by_class_name('l-box-select-inner').find_element_by_xpath('table/tbody/tr[4]/td').click()
     driver.find_element_by_xpath('//*[@id="highSearchDivForm"]/ul/li[1]/div/span').click()
     time.sleep(3)
 
@@ -155,14 +158,15 @@ def ValidateOrderStatus(i):
         driver.execute_script('getRowData(' + str(i) + ')')
     except:
         return -1
-    time.sleep(3)
+    time.sleep(loginWait)
     if (debugMode < 2):
         if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
             return 0
 
+    driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
     driver.find_element_by_xpath('//*[@id="workOrderDetailsTitle"]/ul/li[2]/a').click()
     time.sleep(waitTime)
-    if (debugMode < 2):
+    if (debugMode < 2 and config['behavior']=='order'):
         lastStatus = driver.find_element_by_xpath(
             '//*[@id="historyLinkInfoDivgrid"]/div[4]/div[2]/div/table/tbody/tr[last()]')
         currentProcess = lastStatus.find_element_by_xpath('./td[3]/div').get_attribute('innerHTML')
@@ -174,18 +178,13 @@ def ValidateOrderStatus(i):
     return 1
 
 
-def OrderRequest(i):
-    isValid = ValidateOrderStatus(i)
-    if isValid != 1:
-        return isValid
-    printLine('该用户需要铁通转网！')
-    driver.execute_script('showInstruPreDiv()')
+def OrderRequest():
     # 安排人员
     AssignWorker()
 
     # 预约时间
     ClickCalendar()
-    totalCount[0] += 1
+
 
     assignedInfo = driver.find_element_by_name('userHandlerName').get_attribute("value")
     assignedName = re.findall('(.*?)    待处理工单数', assignedInfo, re.S)[0]
@@ -197,20 +196,44 @@ def OrderRequest(i):
         assignableWorker[assignedName] = 1
     print("员工： " + assignedName + "已派单" + str(assignableWorker[assignedName]) + "次， 剩余 " + str(
             assignCount[0] - assignableWorker[assignedName]) + "次")
+
+
+def ProcessRequest(i):
+    if i==29:
+        pass
+    isValid = ValidateOrderStatus(i)
+    if isValid != 1:
+        return isValid
+    printLine('该用户需要铁通转网！')
+    #审核时直接在该页面就可调用showCheckDaiWeiDiv函数，无需切换
+    if config['behavior']=='order':
+        driver.execute_script('showInstruPreDiv()')
+        OrderRequest()
     driver.get_screenshot_as_file('picture/Step5_处理完毕.png')
+    totalCount[0] += 1
     try:
         if (debugMode > 0):
             driver.execute_script('alert()')
+
         elif (debugMode == 0):
-            driver.execute_script('preSucBtn()')
+            if config['behavior']=='order':
+                driver.execute_script('preSucBtn()')
+            elif config['behavior']=='auditor':
+                #phantomjs中关于弹窗的bug,崩溃
+                if mode=='standardTT':
+                    driver.execute_script('showCheckDaiWeiDiv()')
+                    driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
+                elif mode=='amazingTT' :
+                    driver.execute_script('checkDaiweiSubmit()')
+
     except:
-        time.sleep(1)
-        driver.switch_to.alert.accept()
+        driver.get_screenshot_as_file('picture/Step6_popup.png')
+        if mode == 'amazingTT':
+            driver.switch_to.alert.accept()
         time.sleep(waitTime)
         if (debugMode >0):
             return 0
         return 1
-
 
 def ClickCalendar():
     driver.find_elements_by_class_name('l-trigger-icon')[12].click()
@@ -222,13 +245,17 @@ def ClickCalendar():
 
 
 def NavToNextPage(hasAssigned):
-    if hasAssigned == 0:
+    if debugMode>0:
+        driver.get_screenshot_as_file('picture/Step5.5_准备换页前.png')
+    if not hasAssigned or hasAssigned == 0:
         # 关闭预约界面
         driver.execute_script('closeWorkOrderDetailsDiv()')
 
     if (mode == 'amazingTT'):
         #滚动到最下以防无‘下一页’按键
         driver.execute_script('document.documentElement.scrollTop=20')
+    if debugMode>0:
+        driver.get_screenshot_as_file('picture/Step6_准备换页.png')
     nextpage = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
     nextpage.click()
     time.sleep(3)
@@ -253,10 +280,10 @@ def Exctt():
             item = 30
         for i in range(0, item):
             global assignableNums
-            if ((assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
-                assignCount[0]):
+            if (config['behavior']=='order' and ((assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
+                assignCount[0])):
                 return
-            hasAssigned = OrderRequest(i)
+            hasAssigned = ProcessRequest(i)
             if hasAssigned == -1:
                 printLine('运行结束')
                 return 0
@@ -268,7 +295,7 @@ def Exctt():
 
 
 if __name__ == '__main__':
-    print('Welcome ttAuditor v4.5')
+    print('Welcome ttAuditor v5.0')
     config = ReadConfig()
     waitTime = float(config['waitTime'])
     loginWait = float(config['loginTime'])
@@ -293,8 +320,9 @@ if __name__ == '__main__':
     totalCount = []
     totalCount.append(0)
     assignableWorker[assignWorker] = 0
-
-    print("assignMode: " + config['assignMode']['useMode'])
+    printLine("behavior:"+config["behavior"] )
+    if(config["behavior"]=="order"):
+        printLine("assignMode: " + config['assignMode']['useMode'])
 
     if (mode == 'standardTT'):
         # 无浏览器
@@ -305,5 +333,7 @@ if __name__ == '__main__':
         binary = FirefoxBinary(r'D:\Program Files (x86)\Mozilla Firefox\firefox.exe')
         driver = webdriver.Firefox(firefox_binary=binary)
         Exctt()
-        print("运行结束！")
-        # os.system("pause")
+
+    printLine('共处理工单数：' +str(totalCount[0]))
+    print("运行结束！")
+    # os.system("pause")
