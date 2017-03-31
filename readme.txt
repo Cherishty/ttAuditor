@@ -2,6 +2,9 @@
 #version: 5.0
 #author: 孙蕾
 
+New Feature in 6.6:
+	1.将程序打包为exe应用，在windows环境即可运行!如需执行amazingTT,仍需要下载firefox
+
 New Feature in 5.0:
 	1.新增‘代维审核’功能，使用方法如下：
 		config中新增[behavior],设为[order]则为原来的‘施工预约’功能，设为[auditor]则为新的‘代维审核’功能，

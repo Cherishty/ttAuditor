@@ -24,20 +24,20 @@ def ReadConfig():
 
 def printLine(output):
     print(output)
-
+    file_object.write(output+'\n')
 
 def WaitControlById(str):
     while 1:
         try:
             time.sleep(loginWait)
-            print(str + '元素 正在加载，请稍等...')
+            printLine(str + '元素 正在加载，请稍等...')
             driver.find_element_by_id(str).get_attribute('id')
         except:
             continue
         else:
             # driver.find_element_by_name(str).get_attribute('innerHTML')
             # driver.find_element_by_id(str).click()
-            # print('加载完成，正在切换菜单...')
+            # printLine('加载完成，正在切换菜单...')
             return
 
 
@@ -45,7 +45,7 @@ def SwitchFrameByClass(str):
     while 1:
         try:
             time.sleep(loginWait)
-            print(str + ' 正在加载，请稍等...')
+            printLine(str + ' 正在加载，请稍等...')
             driver.find_element_by_class_name(str).get_attribute('class')
         except:
             continue
@@ -61,7 +61,7 @@ def WaitControlClickByName(str, speed=0):
                 time.sleep(loginWait)
             else:
                 time.sleep(waitTime)
-            print(str + ' 正在加载，请稍等...')
+            printLine(str + ' 正在加载，请稍等...')
             # driver.get_screenshot_as_file(str + '.png')
             driver.find_element_by_name(str)
         except:
@@ -69,7 +69,7 @@ def WaitControlClickByName(str, speed=0):
         else:
             # driver.find_element_by_name(str).get_attribute('innerHTML')
             driver.find_element_by_name(str).click()
-            print(driver.find_element_by_name(str).get_attribute('name') + ' 元素加载完成，正在切换菜单...')
+            printLine(driver.find_element_by_name(str).get_attribute('name') + ' 元素加载完成，正在切换菜单...')
             return
 
 
@@ -111,7 +111,7 @@ def AssignWorkerHalf():
     driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
     # To do:assign worker automatically by counts
     workerList = driver.find_elements_by_xpath('//div[@class="l-box-select-inner"]')[3]
-    print(workerList.find_element_by_tag_name('td').get_attribute('text'))
+    printLine(workerList.find_element_by_tag_name('td').get_attribute('text'))
     workerList.find_element_by_tag_name('td').click()
 
     # workers={}
@@ -149,7 +149,7 @@ def AssignWorker():
     time.sleep(10)
     driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
     workerList = driver.find_elements_by_xpath('//div[@class="l-box-select-inner"]')[3]
-    print(workerList.find_element_by_tag_name('td').get_attribute('text'))
+    printLine(workerList.find_element_by_tag_name('td').get_attribute('text'))
     workerList.find_element_by_tag_name('td').click()
 
 
@@ -161,6 +161,8 @@ def ValidateOrderStatus(i):
     time.sleep(loginWait)
     if (debugMode < 2):
         if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
+            printLine('该用户不需要铁通转网！')
+            driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
             return 0
 
     driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
@@ -194,7 +196,7 @@ def OrderRequest():
     else:
         assignWorker = assignedName
         assignableWorker[assignedName] = 1
-    print("员工： " + assignedName + "已派单" + str(assignableWorker[assignedName]) + "次， 剩余 " + str(
+    printLine("员工： " + assignedName + "已派单" + str(assignableWorker[assignedName]) + "次， 剩余 " + str(
             assignCount[0] - assignableWorker[assignedName]) + "次")
 
 
@@ -204,7 +206,9 @@ def ProcessRequest(i):
     isValid = ValidateOrderStatus(i)
     if isValid != 1:
         return isValid
-    printLine('该用户需要铁通转网！')
+    number=driver.find_element_by_name('pbossOrderCode').get_attribute('value')
+    orderUser=driver.find_element_by_name('handlerUser').get_attribute('value')
+    printLine('该工单将被审核： '+number+ orderUser)
     #审核时直接在该页面就可调用showCheckDaiWeiDiv函数，无需切换
     if config['behavior']=='order':
         driver.execute_script('showInstruPreDiv()')
@@ -220,11 +224,8 @@ def ProcessRequest(i):
                 driver.execute_script('preSucBtn()')
             elif config['behavior']=='auditor':
                 #phantomjs中关于弹窗的bug,崩溃
-                if mode=='standardTT':
-                    driver.execute_script('showCheckDaiWeiDiv()')
-                    driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
-                elif mode=='amazingTT' :
-                    driver.execute_script('checkDaiweiSubmit()')
+                driver.execute_script('showCheckDaiWeiDiv()')
+                driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
 
     except:
         driver.get_screenshot_as_file('picture/Step6_popup.png')
@@ -272,7 +273,7 @@ def Exctt():
                     'innerHTML'))
 
     while currentPage <= totalPage:
-        print('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
+        printLine('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
         driver.get_screenshot_as_file('picture/Step3_当前页.png')
         hasAssigned = 0
         item = 1
@@ -295,7 +296,8 @@ def Exctt():
 
 
 if __name__ == '__main__':
-    print('Welcome ttAuditor v5.0')
+    file_object = open('runTT.log', 'w+')
+    printLine('Welcome ttAuditor v6.6')
     config = ReadConfig()
     waitTime = float(config['waitTime'])
     loginWait = float(config['loginTime'])
@@ -321,19 +323,30 @@ if __name__ == '__main__':
     totalCount.append(0)
     assignableWorker[assignWorker] = 0
     printLine("behavior:"+config["behavior"] )
-    if(config["behavior"]=="order"):
-        printLine("assignMode: " + config['assignMode']['useMode'])
+    try:
+        if(config["behavior"]=="order"):
+            printLine("assignMode: " + config['assignMode']['useMode'])
 
-    if (mode == 'standardTT'):
-        # 无浏览器
-        driver = webdriver.PhantomJS(executable_path="./phantomjs.exe")
-        Exctt()
-    else:
-        # 启动FireFox，可视化界面
-        binary = FirefoxBinary(r'D:\Program Files (x86)\Mozilla Firefox\firefox.exe')
-        driver = webdriver.Firefox(firefox_binary=binary)
-        Exctt()
-
-    printLine('共处理工单数：' +str(totalCount[0]))
-    print("运行结束！")
-    # os.system("pause")
+        if (mode == 'standardTT'):
+            # 无浏览器
+            driver = webdriver.PhantomJS(executable_path="./phantomjs.exe")
+            Exctt()
+        elif (mode == 'amazingTT'):
+            # 启动FireFox，可视化界面
+            binary = FirefoxBinary(r'D:\Program Files (x86)\Mozilla Firefox\firefox.exe')
+            driver = webdriver.Firefox(firefox_binary=binary)
+            Exctt()
+        else:
+            printLine('未能识别运行模式，请检查config')
+            #chromedriver = "./chromedriver.exe"
+            #os.environ["webdriver.chrome.driver"] = chromedriver
+            #driver = webdriver.Chrome(chromedriver)
+            #driver = webdriver.Chrome(executable_path="chromedriver.exe")
+            #Exctt()
+    except:
+        pass
+    finally:
+        printLine('共处理工单数：' +str(totalCount[0]))
+        printLine("运行结束！")
+        file_object.close()
+        os.system("pause")
