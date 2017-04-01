@@ -4,9 +4,9 @@ import time
 import json
 import os
 import re
-import xlwt
 import codecs
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+import traceback
 
 global assignWorker
 global assignIndex
@@ -161,8 +161,7 @@ def ValidateOrderStatus(i):
     time.sleep(loginWait)
     if (debugMode < 2):
         if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
-            printLine('该用户不需要铁通转网！')
-            driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
+
             return 0
 
     driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
@@ -205,11 +204,13 @@ def ProcessRequest(i):
         pass
     isValid = ValidateOrderStatus(i)
     if isValid != 1:
+        printLine('该用户不需要铁通转网！')
+        driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
         return isValid
     number=driver.find_element_by_name('pbossOrderCode').get_attribute('value')
     orderUser=driver.find_element_by_name('handlerUser').get_attribute('value')
-    printLine('该工单将被审核： '+number+ orderUser)
-    #审核时直接在该页面就可调用showCheckDaiWeiDiv函数，无需切换
+    printLine('正在'+config["behavior"]+'该工单： '+number+ orderUser)
+
     if config['behavior']=='order':
         driver.execute_script('showInstruPreDiv()')
         OrderRequest()
@@ -223,7 +224,6 @@ def ProcessRequest(i):
             if config['behavior']=='order':
                 driver.execute_script('preSucBtn()')
             elif config['behavior']=='auditor':
-                #phantomjs中关于弹窗的bug,崩溃
                 driver.execute_script('showCheckDaiWeiDiv()')
                 driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
 
@@ -291,7 +291,9 @@ def Exctt():
 
         NavToNextPage(hasAssigned)
         currentPage += 1
-
+        totalPage = int(
+            driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
+                'innerHTML'))
     return
 
 
@@ -323,9 +325,9 @@ if __name__ == '__main__':
     totalCount.append(0)
     assignableWorker[assignWorker] = 0
     printLine("behavior:"+config["behavior"] )
+    if (config["behavior"] == "order"):
+        printLine("assignMode: " + config['assignMode']['useMode'])
     try:
-        if(config["behavior"]=="order"):
-            printLine("assignMode: " + config['assignMode']['useMode'])
 
         if (mode == 'standardTT'):
             # 无浏览器
@@ -343,8 +345,8 @@ if __name__ == '__main__':
             #driver = webdriver.Chrome(chromedriver)
             #driver = webdriver.Chrome(executable_path="chromedriver.exe")
             #Exctt()
-    except:
-        pass
+    except Exception as e:
+        printLine('traceback.format_exc():\n%s' % traceback.format_exc())
     finally:
         printLine('共处理工单数：' +str(totalCount[0]))
         printLine("运行结束！")
