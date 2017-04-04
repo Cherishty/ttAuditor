@@ -7,6 +7,7 @@ import re
 import codecs
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 import traceback
+import datetime
 
 global assignWorker
 global assignIndex
@@ -23,8 +24,10 @@ def ReadConfig():
 
 
 def printLine(output):
-    print(output)
-    file_object.write(output+'\n')
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(now +'  '+ output)
+    file_object.write(now +'  '+ output + '\n')
+
 
 def WaitControlById(str):
     while 1:
@@ -36,7 +39,7 @@ def WaitControlById(str):
             continue
         else:
             # driver.find_element_by_name(str).get_attribute('innerHTML')
-            # driver.find_element_by_id(str).click()
+            driver.find_element_by_id(str).click()
             # printLine('加载完成，正在切换菜单...')
             return
 
@@ -94,11 +97,11 @@ def InitToMenu():
 def FilterSearch():
     WaitControlById('highSearchBtn1')
     driver.get_screenshot_as_file('picture/Step2_Menu.png')
-    driver.execute_script('showHighSearchDiv()')
+    # driver.execute_script('showHighSearchDiv()')
     driver.find_element_by_name('undefined').click()
-    if(config['behavior']=='order'):
+    if (config['behavior'] == 'order'):
         driver.find_element_by_class_name('l-box-select-inner').find_element_by_xpath('table/tbody/tr[1]/td').click()
-    if(config['behavior']=='auditor'):
+    if (config['behavior'] == 'auditor'):
         driver.find_element_by_class_name('l-box-select-inner').find_element_by_xpath('table/tbody/tr[4]/td').click()
     driver.find_element_by_xpath('//*[@id="highSearchDivForm"]/ul/li[1]/div/span').click()
     time.sleep(3)
@@ -161,13 +164,12 @@ def ValidateOrderStatus(i):
     time.sleep(loginWait)
     if (debugMode < 2):
         if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
-
             return 0
 
     driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
     driver.find_element_by_xpath('//*[@id="workOrderDetailsTitle"]/ul/li[2]/a').click()
     time.sleep(waitTime)
-    if (debugMode < 2 and config['behavior']=='order'):
+    if (debugMode < 2 and config['behavior'] == 'order'):
         lastStatus = driver.find_element_by_xpath(
             '//*[@id="historyLinkInfoDivgrid"]/div[4]/div[2]/div/table/tbody/tr[last()]')
         currentProcess = lastStatus.find_element_by_xpath('./td[3]/div').get_attribute('innerHTML')
@@ -186,7 +188,6 @@ def OrderRequest():
     # 预约时间
     ClickCalendar()
 
-
     assignedInfo = driver.find_element_by_name('userHandlerName').get_attribute("value")
     assignedName = re.findall('(.*?)    待处理工单数', assignedInfo, re.S)[0]
     global assignWorker
@@ -196,22 +197,22 @@ def OrderRequest():
         assignWorker = assignedName
         assignableWorker[assignedName] = 1
     printLine("员工： " + assignedName + "已派单" + str(assignableWorker[assignedName]) + "次， 剩余 " + str(
-            assignCount[0] - assignableWorker[assignedName]) + "次")
+        assignCount[0] - assignableWorker[assignedName]) + "次")
 
 
 def ProcessRequest(i):
-    if i==29:
+    if i == 29:
         pass
     isValid = ValidateOrderStatus(i)
     if isValid != 1:
         printLine('该用户不需要铁通转网！')
         driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
         return isValid
-    number=driver.find_element_by_name('pbossOrderCode').get_attribute('value')
-    orderUser=driver.find_element_by_name('handlerUser').get_attribute('value')
-    printLine('正在'+config["behavior"]+'该工单： '+number+ orderUser)
+    number = driver.find_element_by_name('pbossOrderCode').get_attribute('value')
+    orderUser = driver.find_element_by_name('handlerUser').get_attribute('value')
+    printLine('正在' + config["behavior"] + '该工单： ' + number + orderUser)
 
-    if config['behavior']=='order':
+    if config['behavior'] == 'order':
         driver.execute_script('showInstruPreDiv()')
         OrderRequest()
     driver.get_screenshot_as_file('picture/Step5_处理完毕.png')
@@ -221,9 +222,9 @@ def ProcessRequest(i):
             driver.execute_script('alert()')
 
         elif (debugMode == 0):
-            if config['behavior']=='order':
+            if config['behavior'] == 'order':
                 driver.execute_script('preSucBtn()')
-            elif config['behavior']=='auditor':
+            elif config['behavior'] == 'auditor':
                 driver.execute_script('showCheckDaiWeiDiv()')
                 driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
 
@@ -232,9 +233,10 @@ def ProcessRequest(i):
         if mode == 'amazingTT':
             driver.switch_to.alert.accept()
         time.sleep(waitTime)
-        if (debugMode >0):
+        if (debugMode > 0):
             return 0
         return 1
+
 
 def ClickCalendar():
     driver.find_elements_by_class_name('l-trigger-icon')[12].click()
@@ -246,16 +248,16 @@ def ClickCalendar():
 
 
 def NavToNextPage(hasAssigned):
-    if debugMode>0:
+    if debugMode > 0:
         driver.get_screenshot_as_file('picture/Step5.5_准备换页前.png')
     if not hasAssigned or hasAssigned == 0:
         # 关闭预约界面
         driver.execute_script('closeWorkOrderDetailsDiv()')
 
     if (mode == 'amazingTT'):
-        #滚动到最下以防无‘下一页’按键
+        # 滚动到最下以防无‘下一页’按键
         driver.execute_script('document.documentElement.scrollTop=20')
-    if debugMode>0:
+    if debugMode > 0:
         driver.get_screenshot_as_file('picture/Step6_准备换页.png')
     nextpage = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
     nextpage.click()
@@ -269,8 +271,8 @@ def Exctt():
         FilterSearch()
     currentPage = 1
     totalPage = int(
-            driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
-                    'innerHTML'))
+        driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
+            'innerHTML'))
 
     while currentPage <= totalPage:
         printLine('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
@@ -281,7 +283,8 @@ def Exctt():
             item = 30
         for i in range(0, item):
             global assignableNums
-            if (config['behavior']=='order' and ((assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
+            if (config['behavior'] == 'order' and (
+                (assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
                 assignCount[0])):
                 return
             hasAssigned = ProcessRequest(i)
@@ -298,13 +301,13 @@ def Exctt():
 
 
 if __name__ == '__main__':
-    file_object = open('runTT.log', 'w+')
-    printLine('Welcome ttAuditor v6.6')
+    file_object = open('runTT.log', 'a')
+    printLine('Welcome ttAuditor v7.0')
     config = ReadConfig()
     waitTime = float(config['waitTime'])
     loginWait = float(config['loginTime'])
     mode = config['mode']
-    debugMode=int(config['debugMode'])
+    debugMode = int(config['debugMode'])
     assignMode = 1
     assignCount = []
     if (config['assignMode']['useMode'] == 'fullAuto'):
@@ -324,7 +327,7 @@ if __name__ == '__main__':
     totalCount = []
     totalCount.append(0)
     assignableWorker[assignWorker] = 0
-    printLine("behavior:"+config["behavior"] )
+    printLine("behavior:" + config["behavior"])
     if (config["behavior"] == "order"):
         printLine("assignMode: " + config['assignMode']['useMode'])
     try:
@@ -335,20 +338,20 @@ if __name__ == '__main__':
             Exctt()
         elif (mode == 'amazingTT'):
             # 启动FireFox，可视化界面
-            binary = FirefoxBinary(r'D:\Program Files (x86)\Mozilla Firefox\firefox.exe')
+            binary = FirefoxBinary(r'C:\Program Files (x86)\Mozilla Firefox\firefox.exe')
             driver = webdriver.Firefox(firefox_binary=binary)
             Exctt()
         else:
             printLine('未能识别运行模式，请检查config')
-            #chromedriver = "./chromedriver.exe"
-            #os.environ["webdriver.chrome.driver"] = chromedriver
-            #driver = webdriver.Chrome(chromedriver)
-            #driver = webdriver.Chrome(executable_path="chromedriver.exe")
-            #Exctt()
+            # chromedriver = "./chromedriver.exe"
+            # os.environ["webdriver.chrome.driver"] = chromedriver
+            # driver = webdriver.Chrome(chromedriver)
+            # driver = webdriver.Chrome(executable_path="chromedriver.exe")
+            # Exctt()
     except Exception as e:
         printLine('traceback.format_exc():\n%s' % traceback.format_exc())
     finally:
-        printLine('共处理工单数：' +str(totalCount[0]))
+        printLine('共处理工单数：' + str(totalCount[0]))
         printLine("运行结束！")
         file_object.close()
         os.system("pause")

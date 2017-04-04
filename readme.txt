@@ -2,6 +2,11 @@
 #version: 5.0
 #author: 孙蕾
 
+New Feature in 7.0:
+	1.稳定性提升
+	2.完善日志功能,每次运行会在当前目录下生成runTT.log
+	3.近期测试中发现，由于firefox兼容性问题，可能行为不符预期，请以后台运行为准
+
 New Feature in 6.6:
 	1.将程序打包为exe应用，在windows环境即可运行!如需执行amazingTT,仍需要下载firefox
 
@@ -44,4 +49,5 @@ New Feature in 2.0
 
 
 To Do:
-1.打包为exe文件
+1.性能提升
+2.调研firefox兼容性问题
