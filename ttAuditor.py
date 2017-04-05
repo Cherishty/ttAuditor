@@ -40,7 +40,7 @@ def WaitControlById(str):
         else:
             # driver.find_element_by_name(str).get_attribute('innerHTML')
             driver.find_element_by_id(str).click()
-            # printLine('加载完成，正在切换菜单...')
+            printLine(driver.find_element_by_id(str).get_attribute('id') + ' 元素加载完成，正在切换菜单...')
             return
 
 
@@ -209,8 +209,8 @@ def ProcessRequest(i):
         driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
         return isValid
     number = driver.find_element_by_name('pbossOrderCode').get_attribute('value')
-    orderUser = driver.find_element_by_name('handlerUser').get_attribute('value')
-    printLine('正在' + config["behavior"] + '该工单： ' + number + orderUser)
+    house = driver.find_elements_by_name('uptownName')[1].get_attribute('value')
+    printLine('正在' + config["behavior"] + '该工单： ' + number + house)
 
     if config['behavior'] == 'order':
         driver.execute_script('showInstruPreDiv()')
@@ -229,6 +229,8 @@ def ProcessRequest(i):
                 driver.find_element_by_id('checkDaiweiDivTool').find_element_by_xpath('./a[1]').click()
 
     except:
+        pass
+    finally:
         driver.get_screenshot_as_file('picture/Step6_popup.png')
         if mode == 'amazingTT':
             driver.switch_to.alert.accept()
@@ -338,7 +340,7 @@ if __name__ == '__main__':
             Exctt()
         elif (mode == 'amazingTT'):
             # 启动FireFox，可视化界面
-            binary = FirefoxBinary(r'C:\Program Files (x86)\Mozilla Firefox\firefox.exe')
+            binary = FirefoxBinary(r'C:\Program Files\Mozilla Firefox\firefox.exe')
             driver = webdriver.Firefox(firefox_binary=binary)
             Exctt()
         else:
