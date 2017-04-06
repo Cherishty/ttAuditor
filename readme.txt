@@ -1,11 +1,19 @@
 ﻿#ttAuditor
-#version: 5.0
-#author: 孙蕾
+#version: 7.2
+#author: https://github.com/Cherishty/ttAuditor
+
+New Feature in 7.2:
+	1.性能提升，工单处理速度更快
+	2.稳定性提升，加载特定控件成功率更高，并在picture中新增截图
+	3.准确率提升，智能判断翻页/刷新
+	4.支持win32
+	
 
 New Feature in 7.0:
 	1.稳定性提升
 	2.完善日志功能,每次运行会在当前目录下生成runTT.log
-	3.近期测试中发现，由于firefox兼容性问题，可能行为不符预期，请以后台运行为准
+	3.动态安排派单时的预约时间，基本在一个月后左右
+	4.近期测试中发现，由于firefox兼容性问题，可能行为不符预期，请以后台运行为准
 
 New Feature in 6.6:
 	1.将程序打包为exe应用，在windows环境即可运行!如需执行amazingTT,仍需要下载firefox
