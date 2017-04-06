@@ -285,7 +285,6 @@ def RefershPage(hasAssigned):
         # 滚动到最下以防无‘下一页’按键
         driver.execute_script('document.documentElement.scrollTop=20')
     #根据未处理工单数决定翻页/刷新
-<<<<<<< HEAD
     
     if totalCount[1]>=6:
         refreshButton=driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
@@ -294,14 +293,6 @@ def RefershPage(hasAssigned):
     else:
         refreshButton = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[10]/div/span')
         printLine('当前页面处理完毕，正在更新页面')
-=======
-    printLine('当前页面处理完毕，正在更新页面')
-    if totalCount[1]>=6:
-        refreshButton=driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
-        totalCount[1]=0
-    else:
-        refreshButton = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[10]/div/span')
->>>>>>> 5ab037d8440d09b378c1a553bc57d0d1f41b5472
     refreshButton.click()
     time.sleep(loadingWait)
 
