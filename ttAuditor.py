@@ -1,13 +1,13 @@
-from selenium import webdriver
-from selenium.webdriver.support.select import Select
-import time
+import codecs
+import datetime
 import json
 import os
 import re
-import codecs
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+import time
 import traceback
-import datetime
+
+from selenium import webdriver
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 
 global assignWorker
 global assignIndex
@@ -32,7 +32,7 @@ def printLine(output):
 def WaitControlById(str):
     while 1:
         try:
-            time.sleep(loginWait)
+            time.sleep(loadingWait)
             printLine(str + '元素 正在加载，请稍等...')
             driver.find_element_by_id(str).get_attribute('id')
         except:
@@ -47,7 +47,7 @@ def WaitControlById(str):
 def SwitchFrameByClass(str):
     while 1:
         try:
-            time.sleep(loginWait)
+            time.sleep(loadingWait)
             printLine(str + ' 正在加载，请稍等...')
             driver.find_element_by_class_name(str).get_attribute('class')
         except:
@@ -61,7 +61,7 @@ def WaitControlClickByName(str, speed=0):
     while 1:
         try:
             if (speed == 0):
-                time.sleep(loginWait)
+                time.sleep(loadingWait)
             else:
                 time.sleep(waitTime)
             printLine(str + ' 正在加载，请稍等...')
@@ -80,16 +80,20 @@ def InitToMenu():
     userName = config['userName']
     pwd = config['password']
 
-    loginWait = float(config['loginTime'])
+    loadingWait = float(config['loadingTime'])
     driver.get(config['url'])
     driver.get_screenshot_as_file('picture/Step1_login.png')
     driver.find_element_by_id('j_username').send_keys(userName)
     driver.find_element_by_id('j_password').send_keys(pwd)
 
     driver.find_element_by_id('btnlogin').click()
-    time.sleep(loginWait)
+    time.sleep(loadingWait)
+    #双击666
+    driver.get_screenshot_as_file('picture/Step1.5_AfterLogin1.png')
     WaitControlClickByName('工单管理')
-    time.sleep(loginWait)
+    WaitControlClickByName('工单管理')
+    driver.get_screenshot_as_file('picture/Step1.5_AfterLogin2.png')
+    time.sleep(loadingWait)
     WaitControlClickByName('工单管理业务开通')
     WaitControlClickByName('工单管理业务开通业务开通工单')
 
@@ -150,7 +154,8 @@ def AssignWorker():
         assignWorker = GetAssignWorker()
     driver.find_element_by_name('userHandlerName').send_keys(assignWorker)
     time.sleep(10)
-    driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
+    if totalCount[0] == 0:
+        driver.get_screenshot_as_file('picture/Step4_待安排人员.png')
     workerList = driver.find_elements_by_xpath('//div[@class="l-box-select-inner"]')[3]
     printLine(workerList.find_element_by_tag_name('td').get_attribute('text'))
     workerList.find_element_by_tag_name('td').click()
@@ -161,12 +166,12 @@ def ValidateOrderStatus(i):
         driver.execute_script('getRowData(' + str(i) + ')')
     except:
         return -1
-    time.sleep(loginWait)
+    time.sleep(loadingWait)
     if (debugMode < 2):
         if "铁通转网" not in driver.find_element_by_id('crmRemark').get_attribute('value'):
             return 0
-
-    driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
+    if totalCount[0] == 0:
+        driver.get_screenshot_as_file('picture/Step3.5_铁通转网.png')
     driver.find_element_by_xpath('//*[@id="workOrderDetailsTitle"]/ul/li[2]/a').click()
     time.sleep(waitTime)
     if (debugMode < 2 and config['behavior'] == 'order'):
@@ -201,21 +206,24 @@ def OrderRequest():
 
 
 def ProcessRequest(i):
-    if i == 29:
-        pass
     isValid = ValidateOrderStatus(i)
-    if isValid != 1:
-        printLine('该用户不需要铁通转网！')
-        driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
-        return isValid
     number = driver.find_element_by_name('pbossOrderCode').get_attribute('value')
+    if isValid != 1:
+        printLine('该用户不需要处理！ '+number)
+        if totalCount[0] == 0:
+            driver.get_screenshot_as_file('picture/Step3.7_不转网.png')
+        totalCount[0]+=1
+        totalCount[1]+=1
+        return isValid
+    
     house = driver.find_elements_by_name('uptownName')[1].get_attribute('value')
     printLine('正在' + config["behavior"] + '该工单： ' + number + house)
 
     if config['behavior'] == 'order':
         driver.execute_script('showInstruPreDiv()')
         OrderRequest()
-    driver.get_screenshot_as_file('picture/Step5_处理完毕.png')
+    if totalCount[0] == 0:
+        driver.get_screenshot_as_file('picture/Step5_处理完毕.png')
     totalCount[0] += 1
     try:
         if (debugMode > 0):
@@ -231,7 +239,8 @@ def ProcessRequest(i):
     except:
         pass
     finally:
-        driver.get_screenshot_as_file('picture/Step6_popup.png')
+        if totalCount[0] <= 1:
+            driver.get_screenshot_as_file('picture/Step6_popup.png')
         if mode == 'amazingTT':
             driver.switch_to.alert.accept()
         time.sleep(waitTime)
@@ -246,8 +255,11 @@ def ClickCalendar():
     nextMonth = driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-header"]')[2]
     nextMonth.find_element_by_xpath('./div[4]/span').click()
 
-    driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-body"]/table/tbody/tr[6]/td[1]')[2].click()
-
+    #动态定位日期
+    today = int(datetime.datetime.now().strftime('%d'))
+    x=today//7+1
+    y=today%7
+    driver.find_elements_by_xpath('//div[@class="l-box-dateeditor-body"]/table/tbody/tr[{0}]/td[{1}]'.format(x,y))[2].click()
 
 def NavToNextPage(hasAssigned):
     if debugMode > 0:
@@ -265,22 +277,33 @@ def NavToNextPage(hasAssigned):
     nextpage.click()
     time.sleep(3)
 
+def RefershPage(hasAssigned):
+    if not hasAssigned or hasAssigned == 0:
+        # 关闭预约界面
+        driver.execute_script('closeWorkOrderDetailsDiv()')
+    if (mode == 'amazingTT'):
+        # 滚动到最下以防无‘下一页’按键
+        driver.execute_script('document.documentElement.scrollTop=20')
+    #根据未处理工单数决定翻页/刷新
+    printLine('当前页面处理完毕，正在更新页面')
+    if totalCount[1]>=6:
+        refreshButton=driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[8]/div[1]/span')
+        totalCount[1]=0
+    else:
+        refreshButton = driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[10]/div/span')
+    refreshButton.click()
+    time.sleep(loadingWait)
 
 def Exctt():
     InitToMenu()
     SwitchFrameByClass('iframe1')
     if (debugMode < 2):
         FilterSearch()
-    currentPage = 1
-    totalPage = int(
-        driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
-            'innerHTML'))
 
-    while currentPage <= totalPage:
-        printLine('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
-        driver.get_screenshot_as_file('picture/Step3_当前页.png')
+    while 1:
         hasAssigned = 0
         item = 1
+        driver.get_screenshot_as_file('picture/Step3_当前页.png')
         if (debugMode < 3):
             item = 30
         for i in range(0, item):
@@ -294,20 +317,44 @@ def Exctt():
                 printLine('运行结束')
                 return 0
 
-        NavToNextPage(hasAssigned)
-        currentPage += 1
-        totalPage = int(
-            driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
-                'innerHTML'))
+        RefershPage(hasAssigned)
+    # currentPage = 1
+    # totalPage = int(
+    #     driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
+    #         'innerHTML'))
+    #
+    # while currentPage <= totalPage:
+    #     printLine('当前在第' + str(currentPage) + '页， 共计' + str(totalPage) + '页')
+    #     driver.get_screenshot_as_file('picture/Step3_当前页.png')
+    #     hasAssigned = 0
+    #     item = 1
+    #     if (debugMode < 3):
+    #         item = 30
+    #     for i in range(0, item):
+    #         global assignableNums
+    #         if (config['behavior'] == 'order' and (
+    #             (assignMode and assignCount[0] <= assignableWorker[assignWorker]) or totalCount[0] >= assignableNums *
+    #             assignCount[0])):
+    #             return
+    #         hasAssigned = ProcessRequest(i)
+    #         if hasAssigned == -1:
+    #             printLine('运行结束')
+    #             return 0
+    #
+    #     NavToNextPage(hasAssigned)
+    #     currentPage += 1
+    #     totalPage = int(
+    #         driver.find_element_by_xpath('//*[@id="businessListGrid"]/div[5]/div/div[6]/span/span').get_attribute(
+    #             'innerHTML'))
     return
 
 
 if __name__ == '__main__':
     file_object = open('runTT.log', 'a')
-    printLine('Welcome ttAuditor v7.0')
+    printLine('Welcome ttAuditor v7.2')
     config = ReadConfig()
     waitTime = float(config['waitTime'])
-    loginWait = float(config['loginTime'])
+    loadingWait = float(config['loadingTime'])
     mode = config['mode']
     debugMode = int(config['debugMode'])
     assignMode = 1
@@ -328,6 +375,7 @@ if __name__ == '__main__':
     assignableMap = []
     totalCount = []
     totalCount.append(0)
+    totalCount.append(0)
     assignableWorker[assignWorker] = 0
     printLine("behavior:" + config["behavior"])
     if (config["behavior"] == "order"):
@@ -340,7 +388,7 @@ if __name__ == '__main__':
             Exctt()
         elif (mode == 'amazingTT'):
             # 启动FireFox，可视化界面
-            binary = FirefoxBinary(r'C:\Program Files\Mozilla Firefox\firefox.exe')
+            binary = FirefoxBinary('D:\Program Files\Mozilla Firefox\firefox.exe')
             driver = webdriver.Firefox(firefox_binary=binary)
             Exctt()
         else:
@@ -354,6 +402,7 @@ if __name__ == '__main__':
         printLine('traceback.format_exc():\n%s' % traceback.format_exc())
     finally:
         printLine('共处理工单数：' + str(totalCount[0]))
+        printLine('其中无需处理的工单数：' + str(totalCount[1]))
         printLine("运行结束！")
         file_object.close()
         os.system("pause")
